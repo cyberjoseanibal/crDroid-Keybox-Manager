@@ -30,26 +30,6 @@
         android:background="#050811"
         android:paddingLeft="10dp"
         android:paddingRight="10dp"
-        android:layout_marginBottom="16dp" />
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="URL del Repositorio Keybox:"
-        android:textColor="@color/text_sub"
-        android:textSize="12.5sp"
-        android:layout_marginBottom="6dp" />
-
-    <EditText
-        android:id="@+id/etGithubUrl"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:background="#050811"
-        android:paddingLeft="12dp"
-        android:paddingRight="12dp"
-        android:textColor="@color/text_main"
-        android:textSize="12sp"
-        android:singleLine="true"
         android:layout_marginBottom="20dp" />
 
     <Button

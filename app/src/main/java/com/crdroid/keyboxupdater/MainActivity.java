@@ -12,7 +12,6 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CompoundButton;
-import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -54,9 +53,8 @@ public class MainActivity extends Activity {
     private boolean isAutoSyncEnabled = true;
     private String lastKnownHash = "";
     private int syncIntervalHours = 3;
-    private String githubUrl = "https://raw.githubusercontent.com/Wuang26/Kaorios-Toolbox/main/Toolbox-data/Keybox.xml";
 
-    private static final String DEFAULT_URL = "https://raw.githubusercontent.com/Wuang26/Kaorios-Toolbox/main/Toolbox-data/Keybox.xml";
+    private static final String GITHUB_URL = "https://raw.githubusercontent.com/Wuang26/Kaorios-Toolbox/main/Toolbox-data/Keybox.xml";
     private static final String DEFAULT_TARGET_APPS = 
         "# always use leaf hack mode\n" +
         "com.google.android.apps.walletnfcrel\n" +
@@ -132,14 +130,13 @@ public class MainActivity extends Activity {
             }
         });
 
-        appendLog("[INFO] crDroid Keybox Manager v1.1.0 cargado.");
+        appendLog("[INFO] crDroid Keybox Manager v1.1.1 cargado.");
         requestRootAccessOnStart();
         scheduleAutoSync();
     }
 
     private void loadPreferences() {
         syncIntervalHours = prefs.getInt("intervalHours", 3);
-        githubUrl = prefs.getString("githubUrl", DEFAULT_URL);
         isAutoSyncEnabled = prefs.getBoolean("autoSyncEnabled", true);
         switchAutoSync.setChecked(isAutoSyncEnabled);
         tvSubHeader.setText("Sincronizacion Automatica cada " + syncIntervalHours + " Horas");
@@ -177,22 +174,18 @@ public class MainActivity extends Activity {
         dialog.setContentView(R.layout.dialog_settings);
 
         final Spinner spinnerInterval = dialog.findViewById(R.id.spinnerInterval);
-        final EditText etGithubUrl = dialog.findViewById(R.id.etGithubUrl);
         Button btnSave = dialog.findViewById(R.id.btnSaveSettings);
 
         String[] intervals = {"1 Hora", "3 Horas", "6 Horas", "12 Horas", "24 Horas"};
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, intervals);
         spinnerInterval.setAdapter(adapter);
 
-        // Seleccionar intervalo guardado
         int selectedIndex = 1; // 3 Horas por defecto
         if (syncIntervalHours == 1) selectedIndex = 0;
         else if (syncIntervalHours == 6) selectedIndex = 2;
         else if (syncIntervalHours == 12) selectedIndex = 3;
         else if (syncIntervalHours == 24) selectedIndex = 4;
         spinnerInterval.setSelection(selectedIndex);
-
-        etGithubUrl.setText(githubUrl);
 
         btnSave.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -206,13 +199,7 @@ public class MainActivity extends Activity {
                 else if (pos == 4) hours = 24;
 
                 syncIntervalHours = hours;
-                githubUrl = etGithubUrl.getText().toString().trim();
-                if (githubUrl.isEmpty()) githubUrl = DEFAULT_URL;
-
-                prefs.edit()
-                    .putInt("intervalHours", syncIntervalHours)
-                    .putString("githubUrl", githubUrl)
-                    .apply();
+                prefs.edit().putInt("intervalHours", syncIntervalHours).apply();
 
                 tvSubHeader.setText("Sincronizacion Automatica cada " + syncIntervalHours + " Horas");
                 appendLog("[AJUSTES] Intervalo actualizado a " + syncIntervalHours + " horas.");
@@ -272,7 +259,7 @@ public class MainActivity extends Activity {
 
     private void checkGitHubForRevocationOrUpdate() {
         try {
-            URL url = new URL(githubUrl);
+            URL url = new URL(GITHUB_URL);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setConnectTimeout(8000);
             conn.setReadTimeout(8000);
@@ -370,7 +357,7 @@ public class MainActivity extends Activity {
             @Override
             public void run() {
                 try {
-                    URL url = new URL(githubUrl);
+                    URL url = new URL(GITHUB_URL);
                     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                     conn.setConnectTimeout(10000);
                     conn.setReadTimeout(10000);
