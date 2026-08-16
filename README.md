@@ -34,6 +34,19 @@ El APK de **crDroid Keybox Manager** ha sido escaneado en VirusTotal para garant
 
 ---
 
+## 🔄 Funcionamiento de la Sincronización Automática
+
+Así es como funciona el sistema de actualización en segundo plano con **WorkManager**:
+
+- **Cuando GitHub se actualiza (suben un nuevo Keybox):**
+  - En la siguiente verificación periódica de **WorkManager** (ej. cada 3 horas), la app calcula el nuevo hash SHA-256 de GitHub.
+  - Al ser diferente al hash guardado en tu dispositivo, detecta el cambio automáticamente, aplica el nuevo `Keybox.xml` en las rutas Root y en `Settings.Secure` de crDroid, y guarda el nuevo hash.
+
+- **Mientras GitHub NO cambie:**
+  - La app revisa el archivo, ve que los hashes son idénticos y no realiza ninguna escritura, evitando actualizar en bucle o consumir batería innecesariamente.
+
+---
+
 ## 🚀 Instalación y Uso
 
 1. Descarga el archivo APK listo para instalar desde la sección de [Releases](../../releases).
