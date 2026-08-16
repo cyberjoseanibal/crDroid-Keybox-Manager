@@ -142,7 +142,7 @@ public class MainActivity extends Activity {
             }
         });
 
-        appendLog("[INFO] crDroid Keybox Manager v2.1.0 listo.");
+        appendLog("[INFO] crDroid Keybox Manager v2.2.0 listo.");
         requestRootAccessOnStart();
         scheduleAutoSync();
     }
@@ -184,7 +184,7 @@ public class MainActivity extends Activity {
     private void runPlayIntegrityTest() {
         setButtonsEnabled(false);
         updateStatus("Probando Play Integrity...", 0xFF0D9488);
-        appendLog("[TEST] Ejecutando comprobacion visual de Play Integrity...");
+        appendLog("[TEST] Ejecutando comprobacion visual avanzada...");
 
         schedulerService.execute(new Runnable() {
             @Override
@@ -210,7 +210,7 @@ public class MainActivity extends Activity {
 
                     final boolean isBasicPass = isRootGranted;
                     final boolean isDevicePass = keyboxFileExists || settingsKeyboxSet;
-                    final boolean isStrongPass = isDevicePass; // Spoof de hardware activo por Keybox.xml
+                    final boolean isStrongPass = isDevicePass;
 
                     appendLog("[TEST] MEETS_BASIC_INTEGRITY: " + (isBasicPass ? "PASS" : "FAIL"));
                     appendLog("[TEST] MEETS_DEVICE_INTEGRITY: " + (isDevicePass ? "PASS" : "FAIL"));
@@ -240,11 +240,17 @@ public class MainActivity extends Activity {
         ImageView imgBasic = dialog.findViewById(R.id.imgBasicCheck);
         ImageView imgDevice = dialog.findViewById(R.id.imgDeviceCheck);
         ImageView imgStrong = dialog.findViewById(R.id.imgStrongCheck);
+
+        TextView tvBasicBadge = dialog.findViewById(R.id.tvBasicBadge);
+        TextView tvDeviceBadge = dialog.findViewById(R.id.tvDeviceBadge);
+        TextView tvStrongBadge = dialog.findViewById(R.id.tvStrongBadge);
+
         Button btnRecheck = dialog.findViewById(R.id.btnRecheckIntegrity);
 
-        imgBasic.setImageResource(basicPass ? R.drawable.ic_pass_check : R.drawable.ic_fail_cross);
-        imgDevice.setImageResource(devicePass ? R.drawable.ic_pass_check : R.drawable.ic_fail_cross);
-        imgStrong.setImageResource(strongPass ? R.drawable.ic_pass_check : R.drawable.ic_fail_cross);
+        // Update Icons & Badges
+        setupBadge(imgBasic, tvBasicBadge, basicPass);
+        setupBadge(imgDevice, tvDeviceBadge, devicePass);
+        setupBadge(imgStrong, tvStrongBadge, strongPass);
 
         btnRecheck.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -255,6 +261,20 @@ public class MainActivity extends Activity {
         });
 
         dialog.show();
+    }
+
+    private void setupBadge(ImageView img, TextView tvBadge, boolean isPass) {
+        if (isPass) {
+            img.setImageResource(R.drawable.ic_pass_check);
+            tvBadge.setText("PASS");
+            tvBadge.setTextColor(0xFF10B981);
+            tvBadge.setBackgroundColor(0xFF064E3B);
+        } else {
+            img.setImageResource(R.drawable.ic_fail_cross);
+            tvBadge.setText("FAIL");
+            tvBadge.setTextColor(0xFFEF4444);
+            tvBadge.setBackgroundColor(0xFF7F1D1D);
+        }
     }
 
     private void showSettingsDialog() {

@@ -3,103 +3,207 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="24dp"
-    android:background="#121212">
+    android:padding="22dp"
+    android:background="#0A0F1D">
 
-    <!-- Header -->
-    <TextView
+    <!-- Header Section -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Play Integrity API Checker"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        android:textColor="#FFFFFF"
-        android:layout_marginBottom="28dp" />
+        android:orientation="vertical"
+        android:layout_marginBottom="20dp">
 
-    <!-- Item 1: BASIC INTEGRITY -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Play Integrity API Checker"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="#F3F4F6" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Diagnostico de Atestacion del Sistema"
+            android:textSize="11.5sp"
+            android:textColor="#9CA3AF"
+            android:layout_marginTop="2dp" />
+    </LinearLayout>
+
+    <!-- Item 1: BASIC INTEGRITY CARD -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:layout_marginBottom="20dp">
+        android:padding="14dp"
+        android:background="@drawable/card_shape"
+        android:layout_marginBottom="10dp">
 
         <ImageView
             android:id="@+id/imgBasicCheck"
-            android:layout_width="38dp"
-            android:layout_height="38dp"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
             android:src="@drawable/ic_pass_check"
-            android:layout_marginRight="16dp" />
+            android:layout_marginRight="14dp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="MEETS_BASIC_INTEGRITY"
+                android:textSize="13.5sp"
+                android:textStyle="bold"
+                android:textColor="#F9FAFB" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Atestacion basica de software activa"
+                android:textSize="10.5sp"
+                android:textColor="#9CA3AF"
+                android:layout_marginTop="1dp" />
+        </LinearLayout>
 
         <TextView
+            android:id="@+id/tvBasicBadge"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="MEETS_BASIC_INTEGRITY"
-            android:textSize="15sp"
+            android:text="PASS"
+            android:textSize="11sp"
             android:textStyle="bold"
-            android:textColor="#FFFFFF" />
+            android:textColor="#10B981"
+            android:background="#064E3B"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp" />
     </LinearLayout>
 
-    <!-- Item 2: DEVICE INTEGRITY -->
+    <!-- Item 2: DEVICE INTEGRITY CARD -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:layout_marginBottom="20dp">
+        android:padding="14dp"
+        android:background="@drawable/card_shape"
+        android:layout_marginBottom="10dp">
 
         <ImageView
             android:id="@+id/imgDeviceCheck"
-            android:layout_width="38dp"
-            android:layout_height="38dp"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
             android:src="@drawable/ic_pass_check"
-            android:layout_marginRight="16dp" />
+            android:layout_marginRight="14dp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="MEETS_DEVICE_INTEGRITY"
+                android:textSize="13.5sp"
+                android:textStyle="bold"
+                android:textColor="#F9FAFB" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Keybox.xml instalado en TrickyStore"
+                android:textSize="10.5sp"
+                android:textColor="#9CA3AF"
+                android:layout_marginTop="1dp" />
+        </LinearLayout>
 
         <TextView
+            android:id="@+id/tvDeviceBadge"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="MEETS_DEVICE_INTEGRITY"
-            android:textSize="15sp"
+            android:text="PASS"
+            android:textSize="11sp"
             android:textStyle="bold"
-            android:textColor="#FFFFFF" />
+            android:textColor="#10B981"
+            android:background="#064E3B"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp" />
     </LinearLayout>
 
-    <!-- Item 3: STRONG INTEGRITY -->
+    <!-- Item 3: STRONG INTEGRITY CARD -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:layout_marginBottom="28dp">
+        android:padding="14dp"
+        android:background="@drawable/card_shape"
+        android:layout_marginBottom="22dp">
 
         <ImageView
             android:id="@+id/imgStrongCheck"
-            android:layout_width="38dp"
-            android:layout_height="38dp"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
             android:src="@drawable/ic_pass_check"
-            android:layout_marginRight="16dp" />
+            android:layout_marginRight="14dp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="MEETS_STRONG_INTEGRITY"
+                android:textSize="13.5sp"
+                android:textStyle="bold"
+                android:textColor="#F9FAFB" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Simulacion de clave de hardware activa"
+                android:textSize="10.5sp"
+                android:textColor="#9CA3AF"
+                android:layout_marginTop="1dp" />
+        </LinearLayout>
 
         <TextView
+            android:id="@+id/tvStrongBadge"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="MEETS_STRONG_INTEGRITY"
-            android:textSize="15sp"
+            android:text="PASS"
+            android:textSize="11sp"
             android:textStyle="bold"
-            android:textColor="#FFFFFF" />
+            android:textColor="#10B981"
+            android:background="#064E3B"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp" />
     </LinearLayout>
 
-    <!-- Button -->
+    <!-- Action Button -->
     <Button
         android:id="@+id/btnRecheckIntegrity"
-        android:layout_width="wrap_content"
-        android:layout_height="42dp"
-        android:layout_gravity="center_horizontal"
-        android:text="VERIFICAR"
-        android:textSize="12sp"
+        android:layout_width="match_parent"
+        android:layout_height="46dp"
+        android:text="VOLVER A VERIFICAR INTEGRIDAD"
+        android:textSize="12.5sp"
         android:textStyle="bold"
         android:textColor="#FFFFFF"
-        android:backgroundTint="#1F2937"
-        android:paddingLeft="24dp"
-        android:paddingRight="24dp" />
+        android:backgroundTint="#0D9488" />
 
 </LinearLayout>
