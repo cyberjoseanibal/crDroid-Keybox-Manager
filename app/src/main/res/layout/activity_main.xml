@@ -189,7 +189,7 @@
             android:id="@+id/tvLog"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="[INFO] crDroid Keybox Manager v1.3.0 listo.\n[INFO] Auto-sincronización activa."
+            android:text="[INFO] crDroid Keybox Manager v1.3.1 listo.\n[INFO] Auto-sincronización activa."
             android:textColor="#34D399"
             android:textSize="11.5sp"
             android:fontFamily="monospace" />
