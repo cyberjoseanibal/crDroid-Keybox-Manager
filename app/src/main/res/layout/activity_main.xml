@@ -6,30 +6,49 @@
     android:padding="20dp"
     android:background="@color/bg_dark">
 
-    <!-- Header Section -->
+    <!-- Header Section with Settings Button -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:layout_marginTop="6dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="4dp"
         android:layout_marginBottom="16dp">
 
-        <TextView
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="crDroid Keybox Manager"
-            android:textSize="22sp"
-            android:textStyle="bold"
-            android:textColor="@color/accent_sky" />
+            android:layout_weight="1"
+            android:orientation="vertical">
 
-        <TextView
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="crDroid Keybox Manager"
+                android:textSize="21sp"
+                android:textStyle="bold"
+                android:textColor="@color/accent_sky" />
+
+            <TextView
+                android:id="@+id/tvSubHeader"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Sincronizacion Automatica cada 3 Horas"
+                android:textSize="11.5sp"
+                android:textColor="@color/text_sub"
+                android:layout_marginTop="2dp" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnOpenSettings"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Sincronizacion Automatica cada 3 Horas"
-            android:textSize="12sp"
-            android:textColor="@color/text_sub"
-            android:layout_marginTop="3dp" />
+            android:layout_height="40dp"
+            android:text="Ajustes"
+            android:textSize="11.5sp"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="@color/card_border"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp" />
     </LinearLayout>
 
     <!-- Status & AutoSync Card -->
@@ -59,7 +78,7 @@
                 android:id="@+id/tvStatus"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Inicializando..."
+                android:text="Comprobando Root..."
                 android:textColor="@color/accent_green"
                 android:textSize="13sp"
                 android:textStyle="bold" />
@@ -87,7 +106,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Auto-Sincronización (3 Horas)"
+                    android:text="Auto-Sincronización GitHub"
                     android:textColor="@color/text_main"
                     android:textSize="13sp"
                     android:textStyle="bold" />
@@ -95,7 +114,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Comprueba el repositorio cada 3 horas"
+                    android:text="Reemplaza Keybox al detectar actualizaciones"
                     android:textColor="@color/text_sub"
                     android:textSize="10.5sp"
                     android:layout_marginTop="2dp" />
@@ -163,7 +182,7 @@
             android:id="@+id/tvLog"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="[INFO] crDroid Keybox Manager listo.\n[INFO] Auto-sincronizacion programada cada 3 horas."
+            android:text="[INFO] crDroid Keybox Manager v1.1.0 listo.\n[INFO] Auto-sincronizacion activa."
             android:textColor="#6EE7B7"
             android:textSize="11.5sp"
             android:fontFamily="monospace" />

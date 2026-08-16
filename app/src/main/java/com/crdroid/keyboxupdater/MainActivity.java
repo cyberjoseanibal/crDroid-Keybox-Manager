@@ -1,12 +1,19 @@
 package com.crdroid.keyboxupdater;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CompoundButton;
+import android.widget.EditText;
+import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TextView;
 
@@ -24,24 +31,32 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends Activity {
 
     private TextView tvStatus;
     private TextView tvLog;
+    private TextView tvSubHeader;
     private Button btnUpdateKeybox;
     private Button btnUpdateTargets;
     private Button btnDeleteKeybox;
+    private Button btnOpenSettings;
     private Switch switchAutoSync;
 
     private Handler mainHandler;
     private ScheduledExecutorService schedulerService;
+    private ScheduledFuture<?> autoSyncTask;
+    private SharedPreferences prefs;
+
+    private boolean isRootGranted = false;
     private boolean isAutoSyncEnabled = true;
     private String lastKnownHash = "";
+    private int syncIntervalHours = 3;
+    private String githubUrl = "https://raw.githubusercontent.com/Wuang26/Kaorios-Toolbox/main/Toolbox-data/Keybox.xml";
 
-    private static final String GITHUB_URL = "https://raw.githubusercontent.com/Wuang26/Kaorios-Toolbox/main/Toolbox-data/Keybox.xml";
-    
+    private static final String DEFAULT_URL = "https://raw.githubusercontent.com/Wuang26/Kaorios-Toolbox/main/Toolbox-data/Keybox.xml";
     private static final String DEFAULT_TARGET_APPS = 
         "# always use leaf hack mode\n" +
         "com.google.android.apps.walletnfcrel\n" +
@@ -57,32 +72,50 @@ public class MainActivity extends Activity {
 
         tvStatus = findViewById(R.id.tvStatus);
         tvLog = findViewById(R.id.tvLog);
+        tvSubHeader = findViewById(R.id.tvSubHeader);
         btnUpdateKeybox = findViewById(R.id.btnUpdateKeybox);
         btnUpdateTargets = findViewById(R.id.btnUpdateTargets);
         btnDeleteKeybox = findViewById(R.id.btnDeleteKeybox);
+        btnOpenSettings = findViewById(R.id.btnOpenSettings);
         switchAutoSync = findViewById(R.id.switchAutoSync);
 
         mainHandler = new Handler(Looper.getMainLooper());
         schedulerService = Executors.newScheduledThreadPool(2);
+        prefs = getSharedPreferences("crDroidKeyboxPrefs", MODE_PRIVATE);
+
+        loadPreferences();
 
         btnUpdateKeybox.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                startKeyboxUpdate();
+                if (checkRootOrAlert()) {
+                    startKeyboxUpdate();
+                }
             }
         });
 
         btnUpdateTargets.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                startTargetAppsUpdate();
+                if (checkRootOrAlert()) {
+                    startTargetAppsUpdate();
+                }
             }
         });
 
         btnDeleteKeybox.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                startKeyboxDeletion();
+                if (checkRootOrAlert()) {
+                    startKeyboxDeletion();
+                }
+            }
+        });
+
+        btnOpenSettings.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showSettingsDialog();
             }
         });
 
@@ -90,21 +123,109 @@ public class MainActivity extends Activity {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 isAutoSyncEnabled = isChecked;
+                prefs.edit().putBoolean("autoSyncEnabled", isChecked).apply();
                 if (isChecked) {
-                    appendLog("[INFO] Auto-sincronizacion programada cada 3 horas activada.");
+                    appendLog("[INFO] Auto-sincronizacion activada (Cada " + syncIntervalHours + " Horas).");
                 } else {
                     appendLog("[INFO] Auto-sincronizacion desactivada.");
                 }
             }
         });
 
-        appendLog("[INFO] crDroid Keybox Manager cargado.");
+        appendLog("[INFO] crDroid Keybox Manager v1.1.0 cargado.");
         requestRootAccessOnStart();
-        startAutoSyncDaemon();
+        scheduleAutoSync();
+    }
+
+    private void loadPreferences() {
+        syncIntervalHours = prefs.getInt("intervalHours", 3);
+        githubUrl = prefs.getString("githubUrl", DEFAULT_URL);
+        isAutoSyncEnabled = prefs.getBoolean("autoSyncEnabled", true);
+        switchAutoSync.setChecked(isAutoSyncEnabled);
+        tvSubHeader.setText("Sincronizacion Automatica cada " + syncIntervalHours + " Horas");
+    }
+
+    private boolean checkRootOrAlert() {
+        if (!isRootGranted) {
+            showNoRootAlertDialog();
+            return false;
+        }
+        return true;
+    }
+
+    private void showNoRootAlertDialog() {
+        mainHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                new AlertDialog.Builder(MainActivity.this)
+                    .setTitle("Acceso Root Requerido")
+                    .setMessage("No se han detectado permisos de Superusuario (Root) en KernelSU / APatch / Magisk.\n\nEsta aplicacion requiere acceso Root para sincronizar el Keybox y modificar los Ajustes de crDroid.\n\nPor favor otorga acceso Root en tu gestor o verifica el estado de tu dispositivo.")
+                    .setPositiveButton("Reintentar Root", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            requestRootAccessOnStart();
+                        }
+                    })
+                    .setNegativeButton("Entendido", null)
+                    .show();
+            }
+        });
+    }
+
+    private void showSettingsDialog() {
+        final Dialog dialog = new Dialog(this);
+        dialog.setContentView(R.layout.dialog_settings);
+
+        final Spinner spinnerInterval = dialog.findViewById(R.id.spinnerInterval);
+        final EditText etGithubUrl = dialog.findViewById(R.id.etGithubUrl);
+        Button btnSave = dialog.findViewById(R.id.btnSaveSettings);
+
+        String[] intervals = {"1 Hora", "3 Horas", "6 Horas", "12 Horas", "24 Horas"};
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, intervals);
+        spinnerInterval.setAdapter(adapter);
+
+        // Seleccionar intervalo guardado
+        int selectedIndex = 1; // 3 Horas por defecto
+        if (syncIntervalHours == 1) selectedIndex = 0;
+        else if (syncIntervalHours == 6) selectedIndex = 2;
+        else if (syncIntervalHours == 12) selectedIndex = 3;
+        else if (syncIntervalHours == 24) selectedIndex = 4;
+        spinnerInterval.setSelection(selectedIndex);
+
+        etGithubUrl.setText(githubUrl);
+
+        btnSave.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                int pos = spinnerInterval.getSelectedItemPosition();
+                int hours = 3;
+                if (pos == 0) hours = 1;
+                else if (pos == 1) hours = 3;
+                else if (pos == 2) hours = 6;
+                else if (pos == 3) hours = 12;
+                else if (pos == 4) hours = 24;
+
+                syncIntervalHours = hours;
+                githubUrl = etGithubUrl.getText().toString().trim();
+                if (githubUrl.isEmpty()) githubUrl = DEFAULT_URL;
+
+                prefs.edit()
+                    .putInt("intervalHours", syncIntervalHours)
+                    .putString("githubUrl", githubUrl)
+                    .apply();
+
+                tvSubHeader.setText("Sincronizacion Automatica cada " + syncIntervalHours + " Horas");
+                appendLog("[AJUSTES] Intervalo actualizado a " + syncIntervalHours + " horas.");
+                scheduleAutoSync();
+                dialog.dismiss();
+            }
+        });
+
+        dialog.show();
     }
 
     private void requestRootAccessOnStart() {
-        appendLog("[INFO] Comprobando acceso Root...");
+        appendLog("[INFO] Solicitando permisos Superusuario en KernelSU...");
         schedulerService.execute(new Runnable() {
             @Override
             public void run() {
@@ -116,35 +237,42 @@ public class MainActivity extends Activity {
                     os.flush();
                     int code = process.waitFor();
                     if (code == 0) {
-                        updateStatus("Root Activo (Cada 3h)", 0xFF10B981);
-                        appendLog("[INFO] Acceso Root verificado correctamente.");
+                        isRootGranted = true;
+                        updateStatus("Root Activo (Cada " + syncIntervalHours + "h)", 0xFF10B981);
+                        appendLog("[INFO] Permisos Root concedidos exitosamente.");
                     } else {
-                        updateStatus("Permiso Root Requerido", 0xFFEF4444);
-                        appendLog("[ALERTA] Permitir acceso Root en KernelSU.");
+                        isRootGranted = false;
+                        updateStatus("Root Requerido / Sin Permiso", 0xFFEF4444);
+                        appendLog("[ALERTA] No se concedio acceso Root en KernelSU.");
+                        showNoRootAlertDialog();
                     }
                 } catch (Exception e) {
-                    updateStatus("Error Root", 0xFFEF4444);
-                    appendLog("[ERROR] Fallo acceso Root: " + e.getMessage());
+                    isRootGranted = false;
+                    updateStatus("Error de Root", 0xFFEF4444);
+                    appendLog("[ERROR] Fallo al verificar Root: " + e.getMessage());
+                    showNoRootAlertDialog();
                 }
             }
         });
     }
 
-    private void startAutoSyncDaemon() {
-        // Ejecutar comprobación automática cada 3 horas (3 HORAS)
-        schedulerService.scheduleWithFixedDelay(new Runnable() {
+    private synchronized void scheduleAutoSync() {
+        if (autoSyncTask != null && !autoSyncTask.isCancelled()) {
+            autoSyncTask.cancel(true);
+        }
+        autoSyncTask = schedulerService.scheduleWithFixedDelay(new Runnable() {
             @Override
             public void run() {
-                if (isAutoSyncEnabled) {
+                if (isAutoSyncEnabled && isRootGranted) {
                     checkGitHubForRevocationOrUpdate();
                 }
             }
-        }, 10, 3 * 3600, TimeUnit.SECONDS);
+        }, 10, syncIntervalHours * 3600, TimeUnit.SECONDS);
     }
 
     private void checkGitHubForRevocationOrUpdate() {
         try {
-            URL url = new URL(GITHUB_URL);
+            URL url = new URL(githubUrl);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setConnectTimeout(8000);
             conn.setReadTimeout(8000);
@@ -165,7 +293,7 @@ public class MainActivity extends Activity {
                     String currentHash = computeHash(remoteXml);
                     if (!currentHash.equals(lastKnownHash)) {
                         lastKnownHash = currentHash;
-                        appendLog("[AUTO-SYNC (3H)] Cambio detectado en GitHub. Actualizando Keybox...");
+                        appendLog("[AUTO-SYNC] Cambio detectado en GitHub. Actualizando Keybox...");
                         
                         File tempFile = new File(getExternalFilesDir(null), "keybox_temp.xml");
                         FileOutputStream fos = new FileOutputStream(tempFile);
@@ -242,7 +370,7 @@ public class MainActivity extends Activity {
             @Override
             public void run() {
                 try {
-                    URL url = new URL(GITHUB_URL);
+                    URL url = new URL(githubUrl);
                     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                     conn.setConnectTimeout(10000);
                     conn.setReadTimeout(10000);
