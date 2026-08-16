@@ -4,42 +4,115 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:padding="20dp"
-    android:background="@color/card_bg">
+    android:background="#111827">
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Ajustes de Sincronización"
+        android:text="⚙️ Ajustes del Sistema"
         android:textSize="18sp"
         android:textStyle="bold"
-        android:textColor="@color/accent_sky"
+        android:textColor="#38BDF8"
         android:layout_marginBottom="16dp" />
 
-    <TextView
+    <!-- Notificaciones Toggle -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Sincronización Instantánea Push (FCM):"
-        android:textColor="#F9FAFB"
-        android:textSize="13sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="6dp" />
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="12dp"
+        android:background="#1F2937"
+        android:layout_marginBottom="12dp">
 
-    <TextView
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Notificaciones en Barra de Estado"
+                android:textColor="#F9FAFB"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Aviso al instalar Keybox en segundo plano"
+                android:textColor="#9CA3AF"
+                android:textSize="11sp"
+                android:layout_marginTop="2dp" />
+        </LinearLayout>
+
+        <Switch
+            android:id="@+id/switchNotifications"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checked="true" />
+    </LinearLayout>
+
+    <!-- Info FCM Push -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="La aplicación recibe alertas en tiempo real al segundo que cambias el archivo Keybox.xml en GitHub. No requiere temporizadores ni consumo de batería."
-        android:textColor="@color/text_sub"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:background="#1F2937"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📡 Sincronización Push (FCM)"
+            android:textColor="#34D399"
+            android:textSize="12.5sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Alertas en tiempo real al segundo que cambias Keybox.xml en GitHub sin gasto de batería."
+            android:textColor="#9CA3AF"
+            android:textSize="11sp"
+            android:layout_marginTop="3dp" />
+    </LinearLayout>
+
+    <!-- Test Server Connection Button -->
+    <Button
+        android:id="@+id/btnTestConnection"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:text="🔍 Probar Conexión con GitHub"
         android:textSize="12sp"
-        android:layout_marginBottom="20dp" />
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#374151"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Clear Hash Cache Button -->
+    <Button
+        android:id="@+id/btnClearHashCache"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:text="🔄 Re-sincronizar (Forzar Caché)"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#4B5563"
+        android:layout_marginBottom="16dp" />
 
     <Button
         android:id="@+id/btnSaveSettings"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:text="Entendido"
+        android:layout_height="46dp"
+        android:text="Guardar y Cerrar"
         android:textSize="13sp"
         android:textStyle="bold"
         android:textColor="#FFFFFF"
-        android:backgroundTint="@color/accent_blue" />
+        android:backgroundTint="#0284C7" />
 
 </LinearLayout>

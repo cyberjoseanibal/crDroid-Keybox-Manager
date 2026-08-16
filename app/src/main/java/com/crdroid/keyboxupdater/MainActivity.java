@@ -16,6 +16,7 @@ import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.work.Constraints;
 import androidx.work.ExistingPeriodicWorkPolicy;
@@ -298,7 +299,57 @@ public class MainActivity extends Activity {
         final Dialog dialog = new Dialog(this);
         dialog.setContentView(R.layout.dialog_settings);
 
+        Switch switchNotif = dialog.findViewById(R.id.switchNotifications);
+        Button btnTestConn = dialog.findViewById(R.id.btnTestConnection);
+        Button btnClearHash = dialog.findViewById(R.id.btnClearHashCache);
         Button btnSave = dialog.findViewById(R.id.btnSaveSettings);
+
+        boolean notificationsEnabled = prefs.getBoolean("notificationsEnabled", true);
+        switchNotif.setChecked(notificationsEnabled);
+
+        switchNotif.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                prefs.edit().putBoolean("notificationsEnabled", isChecked).apply();
+                appendLog("[AJUSTES] Notificaciones " + (isChecked ? "activadas" : "desactivadas") + ".");
+            }
+        });
+
+        btnTestConn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                appendLog("[TEST] Comprobando respuesta del servidor GitHub...");
+                executorService.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            URL url = new URL(GITHUB_URL);
+                            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                            conn.setConnectTimeout(5000);
+                            conn.setRequestMethod("GET");
+                            int code = conn.getResponseCode();
+                            if (code == 200) {
+                                appendLog("[SUCCESS] Servidor GitHub respondió HTTP 200 OK.");
+                            } else {
+                                appendLog("[ERROR] Servidor respondió HTTP " + code);
+                            }
+                        } catch (Exception e) {
+                            appendLog("[ERROR] Fallo de conexión: " + e.getMessage());
+                        }
+                    }
+                });
+            }
+        });
+
+        btnClearHash.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                lastKnownHash = "";
+                prefs.edit().remove("lastKnownHash").apply();
+                appendLog("[INFO] Caché de Hash restablecido. La próxima sincronización descargará la clave nuevamente.");
+                Toast.makeText(MainActivity.this, "Caché de Hash restablecido", Toast.LENGTH_SHORT).show();
+            }
+        });
 
         btnSave.setOnClickListener(new View.OnClickListener() {
             @Override

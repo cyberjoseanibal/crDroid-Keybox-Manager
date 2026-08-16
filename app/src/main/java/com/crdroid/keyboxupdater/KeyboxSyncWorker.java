@@ -92,6 +92,10 @@ public class KeyboxSyncWorker extends Worker {
     }
 
     private void sendUpdateNotification() {
+        SharedPreferences prefs = context.getSharedPreferences("crDroidKeyboxPrefs", Context.MODE_PRIVATE);
+        boolean notificationsEnabled = prefs.getBoolean("notificationsEnabled", true);
+        if (!notificationsEnabled) return;
+
         try {
             NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
             String channelId = "keybox_updates_channel";
