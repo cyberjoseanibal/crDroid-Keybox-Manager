@@ -6,7 +6,7 @@
     android:padding="20dp"
     android:background="@color/bg_dark">
 
-    <!-- Header Section with Settings Button -->
+    <!-- Header Section with Logo Image & Title -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -14,6 +14,12 @@
         android:gravity="center_vertical"
         android:layout_marginTop="4dp"
         android:layout_marginBottom="16dp">
+
+        <ImageView
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:src="@drawable/app_header_logo"
+            android:layout_marginRight="12dp" />
 
         <LinearLayout
             android:layout_width="0dp"
@@ -25,7 +31,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="crDroid Keybox Manager"
-                android:textSize="21sp"
+                android:textSize="20sp"
                 android:textStyle="bold"
                 android:textColor="@color/accent_sky" />
 
@@ -33,8 +39,8 @@
                 android:id="@+id/tvSubHeader"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Sincronizacion Automatica cada 3 Horas"
-                android:textSize="11.5sp"
+                android:text="Sincronización Automática cada 3 Horas"
+                android:textSize="11sp"
                 android:textColor="@color/text_sub"
                 android:layout_marginTop="2dp" />
         </LinearLayout>
@@ -42,9 +48,9 @@
         <Button
             android:id="@+id/btnOpenSettings"
             android:layout_width="wrap_content"
-            android:layout_height="40dp"
+            android:layout_height="38dp"
             android:text="Ajustes"
-            android:textSize="11.5sp"
+            android:textSize="11sp"
             android:textColor="#FFFFFF"
             android:backgroundTint="@color/card_border"
             android:paddingLeft="12dp"
@@ -72,7 +78,7 @@
                 android:layout_weight="1"
                 android:text="Estado del Sistema"
                 android:textColor="@color/text_sub"
-                android:textSize="12.5sp" />
+                android:textSize="12sp" />
 
             <TextView
                 android:id="@+id/tvStatus"
@@ -80,7 +86,7 @@
                 android:layout_height="wrap_content"
                 android:text="Comprobando Root..."
                 android:textColor="@color/accent_green"
-                android:textSize="13sp"
+                android:textSize="12.5sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
@@ -144,7 +150,7 @@
         android:id="@+id/btnUpdateTargets"
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:text="Aplicar Configuracion Target Apps"
+        android:text="Aplicar Configuración Target Apps"
         android:textSize="13sp"
         android:textStyle="bold"
         android:textColor="#FFFFFF"
@@ -182,7 +188,7 @@
             android:id="@+id/tvLog"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="[INFO] crDroid Keybox Manager v1.1.0 listo.\n[INFO] Auto-sincronizacion activa."
+            android:text="[INFO] crDroid Keybox Manager v1.2.0 listo.\n[INFO] Auto-sincronización activa."
             android:textColor="#6EE7B7"
             android:textSize="11.5sp"
             android:fontFamily="monospace" />

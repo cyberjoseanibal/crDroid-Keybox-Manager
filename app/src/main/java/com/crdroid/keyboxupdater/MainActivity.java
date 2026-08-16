@@ -130,7 +130,7 @@ public class MainActivity extends Activity {
             }
         });
 
-        appendLog("[INFO] crDroid Keybox Manager v1.1.1 cargado.");
+        appendLog("[INFO] crDroid Keybox Manager v1.2.0 cargado.");
         requestRootAccessOnStart();
         scheduleAutoSync();
     }
