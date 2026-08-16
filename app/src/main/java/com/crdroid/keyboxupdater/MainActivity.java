@@ -12,6 +12,7 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CompoundButton;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.Switch;
@@ -55,6 +56,7 @@ public class MainActivity extends Activity {
     private boolean isAutoSyncEnabled = true;
     private String lastKnownHash = "";
     private int syncIntervalHours = 3;
+    private String customTargetAppsList = "";
 
     private static final String GITHUB_URL = "https://raw.githubusercontent.com/Wuang26/Kaorios-Toolbox/main/Toolbox-data/Keybox.xml";
     private static final String DEFAULT_TARGET_APPS = 
@@ -108,7 +110,7 @@ public class MainActivity extends Activity {
             @Override
             public void onClick(View v) {
                 if (checkRootOrAlert()) {
-                    startTargetAppsUpdate();
+                    showTargetEditorDialog();
                 }
             }
         });
@@ -142,7 +144,7 @@ public class MainActivity extends Activity {
             }
         });
 
-        appendLog("[INFO] crDroid Keybox Manager v2.2.0 listo.");
+        appendLog("[INFO] crDroid Keybox Manager v2.3.0 listo.");
         requestRootAccessOnStart();
         scheduleAutoSync();
     }
@@ -150,6 +152,7 @@ public class MainActivity extends Activity {
     private void loadPreferences() {
         syncIntervalHours = prefs.getInt("intervalHours", 3);
         isAutoSyncEnabled = prefs.getBoolean("autoSyncEnabled", true);
+        customTargetAppsList = prefs.getString("customTargetApps", DEFAULT_TARGET_APPS);
         switchAutoSync.setChecked(isAutoSyncEnabled);
         tvSubHeader.setText("Sincronizacion Automatica cada " + syncIntervalHours + " Horas");
     }
@@ -179,6 +182,49 @@ public class MainActivity extends Activity {
                     .show();
             }
         });
+    }
+
+    private void showTargetEditorDialog() {
+        final Dialog dialog = new Dialog(this);
+        dialog.setContentView(R.layout.dialog_target_editor);
+
+        final EditText etTargetApps = dialog.findViewById(R.id.etTargetApps);
+        Button btnAddTemplate = dialog.findViewById(R.id.btnAddBankTemplate);
+        Button btnClear = dialog.findViewById(R.id.btnClearTargets);
+        Button btnSaveAndApply = dialog.findViewById(R.id.btnSaveAndApplyTargets);
+
+        etTargetApps.setText(customTargetAppsList);
+
+        btnAddTemplate.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                etTargetApps.setText(DEFAULT_TARGET_APPS);
+            }
+        });
+
+        btnClear.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                etTargetApps.setText("# Target apps list\n");
+            }
+        });
+
+        btnSaveAndApply.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String newContent = etTargetApps.getText().toString().trim();
+                if (newContent.isEmpty()) {
+                    newContent = DEFAULT_TARGET_APPS;
+                }
+                customTargetAppsList = newContent;
+                prefs.edit().putString("customTargetApps", customTargetAppsList).apply();
+
+                dialog.dismiss();
+                startTargetAppsUpdate(customTargetAppsList);
+            }
+        });
+
+        dialog.show();
     }
 
     private void runPlayIntegrityTest() {
@@ -247,7 +293,6 @@ public class MainActivity extends Activity {
 
         Button btnRecheck = dialog.findViewById(R.id.btnRecheckIntegrity);
 
-        // Update Icons & Badges
         setupBadge(imgBasic, tvBasicBadge, basicPass);
         setupBadge(imgDevice, tvDeviceBadge, devicePass);
         setupBadge(imgStrong, tvStrongBadge, strongPass);
@@ -524,10 +569,10 @@ public class MainActivity extends Activity {
         });
     }
 
-    private void startTargetAppsUpdate() {
+    private void startTargetAppsUpdate(final String contentToApply) {
         setButtonsEnabled(false);
         updateStatus("Aplicando Target Apps...", 0xFF8B5CF6);
-        appendLog("[INFO] Configurando aplicaciones objetivo...");
+        appendLog("[INFO] Guardando y aplicando lista personalizada de Target Apps...");
 
         schedulerService.execute(new Runnable() {
             @Override
@@ -535,14 +580,14 @@ public class MainActivity extends Activity {
                 try {
                     File tempFile = new File(getExternalFilesDir(null), "target_temp.txt");
                     FileOutputStream fos = new FileOutputStream(tempFile);
-                    fos.write(DEFAULT_TARGET_APPS.getBytes());
+                    fos.write(contentToApply.getBytes());
                     fos.close();
 
-                    boolean rootOk = applyTargetAppsRoot(tempFile.getAbsolutePath(), DEFAULT_TARGET_APPS);
+                    boolean rootOk = applyTargetAppsRoot(tempFile.getAbsolutePath(), contentToApply);
 
                     if (rootOk) {
                         updateStatus("Target Apps Aplicadas", 0xFF10B981);
-                        appendLog("[SUCCESS] Aplicaciones objetivo configuradas correctamente.");
+                        appendLog("[SUCCESS] Aplicaciones objetivo guardadas y configuradas correctamente.");
                     } else {
                         updateStatus("Error Root Target Apps", 0xFFEF4444);
                         appendLog("[ERROR] Fallo al configurar Target Apps.");
