@@ -29,8 +29,8 @@ El APK de **crDroid Keybox Manager** ha sido escaneado en VirusTotal para garant
 - ⚙️ **Integración Directa con Ajustes de crDroid:** Escribe en `Settings.Secure` (`spoof_trickystore_keybox` y `spoof_trickystore_target`) para que el estado aparezca inmediatamente reflejado en **Ajustes de crDroid -> Varios -> TrickyStore**.
 - 🎯 **Configuración de Target Apps en 1-Clic:** Aplica automáticamente la lista de aplicaciones objetivo (Google Wallet, GMS, Play Store, ARCore).
 - 🗑️ **Opción para Eliminar Keybox:** Permite borrar la clave del sistema y restaurar el estado inicial en cualquier momento.
-- 🎨 **Interfaz Material 3 Dark:** Diseño limpio, moderno y intuitivo, con registro de eventos en tiempo real.
-- ⚡ **Eficiencia de Batería (0.0%):** Utiliza firmas criptográficas SHA-256 para evitar escrituras y consumo de recursos innecesarios.
+- ⚡ **Eficiencia de Batería (0.0%):** Utiliza notificaciones Push (FCM) y firmas criptográficas SHA-256 para evitar escrituras y consumo de recursos innecesarios.
+- 📡 **Actualización Instantánea vía Push:** Recibe señales en tiempo real al segundo de publicar una nueva clave en GitHub, sin necesidad de mantener la app corriendo de fondo.
 
 ---
 
