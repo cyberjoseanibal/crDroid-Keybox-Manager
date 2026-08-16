@@ -18,25 +18,25 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Intervalo de Monitoreo GitHub:"
-        android:textColor="@color/text_sub"
-        android:textSize="12.5sp"
+        android:text="Sincronización Instantánea Push (FCM):"
+        android:textColor="#F9FAFB"
+        android:textSize="13sp"
+        android:textStyle="bold"
         android:layout_marginBottom="6dp" />
 
-    <Spinner
-        android:id="@+id/spinnerInterval"
+    <TextView
         android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:background="#050811"
-        android:paddingLeft="10dp"
-        android:paddingRight="10dp"
+        android:layout_height="wrap_content"
+        android:text="La aplicación recibe alertas en tiempo real al segundo que cambias el archivo Keybox.xml en GitHub. No requiere temporizadores ni consumo de batería."
+        android:textColor="@color/text_sub"
+        android:textSize="12sp"
         android:layout_marginBottom="20dp" />
 
     <Button
         android:id="@+id/btnSaveSettings"
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:text="Guardar Ajustes"
+        android:text="Entendido"
         android:textSize="13sp"
         android:textStyle="bold"
         android:textColor="#FFFFFF"

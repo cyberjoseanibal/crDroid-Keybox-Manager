@@ -298,37 +298,11 @@ public class MainActivity extends Activity {
         final Dialog dialog = new Dialog(this);
         dialog.setContentView(R.layout.dialog_settings);
 
-        final Spinner spinnerInterval = dialog.findViewById(R.id.spinnerInterval);
         Button btnSave = dialog.findViewById(R.id.btnSaveSettings);
-
-        String[] intervals = {"1 Hora", "3 Horas", "6 Horas", "12 Horas", "24 Horas"};
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, intervals);
-        spinnerInterval.setAdapter(adapter);
-
-        int selectedIndex = 1;
-        if (syncIntervalHours == 1) selectedIndex = 0;
-        else if (syncIntervalHours == 6) selectedIndex = 2;
-        else if (syncIntervalHours == 12) selectedIndex = 3;
-        else if (syncIntervalHours == 24) selectedIndex = 4;
-        spinnerInterval.setSelection(selectedIndex);
 
         btnSave.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                int pos = spinnerInterval.getSelectedItemPosition();
-                int hours = 3;
-                if (pos == 0) hours = 1;
-                else if (pos == 1) hours = 3;
-                else if (pos == 2) hours = 6;
-                else if (pos == 3) hours = 12;
-                else if (pos == 4) hours = 24;
-
-                syncIntervalHours = hours;
-                prefs.edit().putInt("intervalHours", syncIntervalHours).apply();
-
-                tvSubHeader.setText("Sincronizacion Automatica cada " + syncIntervalHours + " Horas");
-                appendLog("[AJUSTES] Intervalo actualizado a " + syncIntervalHours + " horas.");
-                scheduleAutoSync();
                 dialog.dismiss();
             }
         });
