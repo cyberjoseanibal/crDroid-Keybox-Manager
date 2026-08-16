@@ -180,13 +180,35 @@
         android:backgroundTint="#991B1B"
         android:layout_marginBottom="10dp" />
 
-    <TextView
+    <!-- Terminal Console Header with Clear Button -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Registro de Eventos"
-        android:textColor="#9CA3AF"
-        android:textSize="11.5sp"
-        android:layout_marginBottom="4dp" />
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="4dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Registro de Eventos"
+            android:textColor="#9CA3AF"
+            android:textSize="11.5sp" />
+
+        <TextView
+            android:id="@+id/btnClearLog"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="[ Limpiar Registro ]"
+            android:textColor="#38BDF8"
+            android:textSize="10.5sp"
+            android:textStyle="bold"
+            android:paddingLeft="6dp"
+            android:paddingRight="6dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp" />
+    </LinearLayout>
 
     <!-- Terminal Console -->
     <ScrollView
@@ -200,7 +222,7 @@
             android:id="@+id/tvLog"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="[INFO] crDroid Keybox Manager v2.0.0 listo.\n[INFO] Auto-sincronización activa."
+            android:text="[INFO] crDroid Keybox Manager v2.4.0 listo.\n[INFO] Auto-sincronización activa."
             android:textColor="#34D399"
             android:textSize="11sp"
             android:fontFamily="monospace" />
