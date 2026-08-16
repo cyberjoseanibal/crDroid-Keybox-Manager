@@ -159,6 +159,10 @@ public class MainActivity extends Activity {
         appendLog("[INFO] crDroid Keybox Manager listo.");
         requestRootAccessOnStart();
         scheduleAutoSync();
+
+        try {
+            com.google.firebase.messaging.FirebaseMessaging.getInstance().subscribeToTopic("keybox_updates");
+        } catch (Exception ignored) {}
     }
 
     private void loadPreferences() {

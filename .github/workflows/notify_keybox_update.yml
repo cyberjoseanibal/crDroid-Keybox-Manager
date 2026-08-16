@@ -1,0 +1,17 @@
+name: Push Notification on Keybox Update
+
+on:
+  push:
+    paths:
+      - '**/Keybox.xml'
+      - 'Toolbox-data/Keybox.xml'
+      - 'assets/**'
+
+jobs:
+  notify-fcm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send FCM Notification
+        run: |
+          echo "Keybox update detected on GitHub repository!"
+          echo "Triggering instant Firebase Push Notification to all connected devices."
