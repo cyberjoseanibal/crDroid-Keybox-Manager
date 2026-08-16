@@ -40,7 +40,7 @@
                 android:id="@+id/tvSubHeader"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Sincronización Automática cada 3 Horas"
+                android:text="Sincronización Instantánea Push (GitHub)"
                 android:textSize="11sp"
                 android:textColor="#9CA3AF"
                 android:layout_marginTop="2dp" />

@@ -149,9 +149,9 @@ public class MainActivity extends Activity {
                 prefs.edit().putBoolean("autoSyncEnabled", isChecked).apply();
                 scheduleAutoSync();
                 if (isChecked) {
-                    appendLog("[INFO] Auto-sincronizacion activada con WorkManager (Cada " + syncIntervalHours + " Horas).");
+                    appendLog("[INFO] Auto-sincronización instantánea activada (GitHub Push).");
                 } else {
-                    appendLog("[INFO] Auto-sincronizacion desactivada.");
+                    appendLog("[INFO] Auto-sincronización desactivada.");
                 }
             }
         });
@@ -166,11 +166,10 @@ public class MainActivity extends Activity {
     }
 
     private void loadPreferences() {
-        syncIntervalHours = prefs.getInt("intervalHours", 3);
         isAutoSyncEnabled = prefs.getBoolean("autoSyncEnabled", true);
         lastKnownHash = prefs.getString("lastKnownHash", "");
         switchAutoSync.setChecked(isAutoSyncEnabled);
-        tvSubHeader.setText("Sincronizacion Automatica cada " + syncIntervalHours + " Horas");
+        tvSubHeader.setText("Sincronización Instantánea Push (GitHub)");
     }
 
     private boolean checkRootOrAlert() {
