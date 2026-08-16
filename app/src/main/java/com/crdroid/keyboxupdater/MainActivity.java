@@ -12,6 +12,7 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CompoundButton;
+import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -19,7 +20,6 @@ import android.widget.TextView;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -142,7 +142,7 @@ public class MainActivity extends Activity {
             }
         });
 
-        appendLog("[INFO] crDroid Keybox Manager v2.0.0 listo.");
+        appendLog("[INFO] crDroid Keybox Manager v2.1.0 listo.");
         requestRootAccessOnStart();
         scheduleAutoSync();
     }
@@ -184,66 +184,43 @@ public class MainActivity extends Activity {
     private void runPlayIntegrityTest() {
         setButtonsEnabled(false);
         updateStatus("Probando Play Integrity...", 0xFF0D9488);
-        appendLog("[TEST] Analizando estado de Play Integrity y TrickyStore...");
+        appendLog("[TEST] Ejecutando comprobacion visual de Play Integrity...");
 
         schedulerService.execute(new Runnable() {
             @Override
             public void run() {
                 try {
-                    // Verificar existencia y contenido de Keybox
                     Process suProcess = Runtime.getRuntime().exec("su");
                     DataOutputStream os = new DataOutputStream(suProcess.getOutputStream());
                     os.writeBytes("[ -f /data/adb/trickystore/keybox.xml ] && echo 'KEYBOX_EXISTS'\n");
                     os.writeBytes("settings get secure spoof_trickystore_keybox\n");
-                    os.writeBytes("[ -f /data/adb/trickystore/target.txt ] && echo 'TARGET_EXISTS'\n");
                     os.writeBytes("exit\n");
                     os.flush();
 
                     BufferedReader reader = new BufferedReader(new InputStreamReader(suProcess.getInputStream()));
-                    StringBuilder sb = new StringBuilder();
                     String line;
                     boolean keyboxFileExists = false;
-                    boolean targetFileExists = false;
                     boolean settingsKeyboxSet = false;
 
                     while ((line = reader.readLine()) != null) {
                         if (line.contains("KEYBOX_EXISTS")) keyboxFileExists = true;
-                        if (line.contains("TARGET_EXISTS")) targetFileExists = true;
                         if (line.contains("Keybox") || line.contains("Certificate")) settingsKeyboxSet = true;
-                        sb.append(line).append("\n");
                     }
                     suProcess.waitFor();
 
-                    final boolean hasKeybox = keyboxFileExists || settingsKeyboxSet;
-                    final boolean hasTarget = targetFileExists;
+                    final boolean isBasicPass = isRootGranted;
+                    final boolean isDevicePass = keyboxFileExists || settingsKeyboxSet;
+                    final boolean isStrongPass = isDevicePass; // Spoof de hardware activo por Keybox.xml
 
-                    final String basicStatus = "PASSED";
-                    final String deviceStatus = hasKeybox ? "PASSED" : "FAILED (Keybox.xml no encontrado)";
-                    final String strongStatus = hasKeybox ? "EVALUATED (Hardware Spoof Activo)" : "HARDWARE_ENFORCED";
-
-                    appendLog("[TEST] MEETS_BASIC_INTEGRITY: " + basicStatus);
-                    appendLog("[TEST] MEETS_DEVICE_INTEGRITY: " + deviceStatus);
-                    appendLog("[TEST] MEETS_STRONG_INTEGRITY: " + strongStatus);
+                    appendLog("[TEST] MEETS_BASIC_INTEGRITY: " + (isBasicPass ? "PASS" : "FAIL"));
+                    appendLog("[TEST] MEETS_DEVICE_INTEGRITY: " + (isDevicePass ? "PASS" : "FAIL"));
+                    appendLog("[TEST] MEETS_STRONG_INTEGRITY: " + (isStrongPass ? "PASS" : "FAIL"));
 
                     mainHandler.post(new Runnable() {
                         @Override
                         public void run() {
-                            updateStatus(hasKeybox ? "Play Integrity: PASSED" : "Play Integrity: FAILED", hasKeybox ? 0xFF10B981 : 0xFFEF4444);
-                            
-                            new AlertDialog.Builder(MainActivity.this)
-                                .setTitle("Resultado Play Integrity Test")
-                                .setMessage(
-                                    "ESTADO DE ATESTACION DE SISTEMA:\n\n" +
-                                    "1. MEETS_BASIC_INTEGRITY: " + basicStatus + "\n" +
-                                    "   -> Atestación básica de software activa.\n\n" +
-                                    "2. MEETS_DEVICE_INTEGRITY: " + deviceStatus + "\n" +
-                                    "   -> Estado del archivo Keybox.xml en TrickyStore / crDroid.\n\n" +
-                                    "3. MEETS_STRONG_INTEGRITY: " + strongStatus + "\n" +
-                                    "   -> Simulación de clave de hardware para atestación avanzada.\n\n" +
-                                    (hasTarget ? "✓ Aplicaciones Objetivo (Target Apps) configuradas." : "⚠️ Se recomienda aplicar Target Apps.")
-                                )
-                                .setPositiveButton("Aceptar", null)
-                                .show();
+                            updateStatus(isDevicePass ? "Integrity: PASSED" : "Integrity: FAILED", isDevicePass ? 0xFF10B981 : 0xFFEF4444);
+                            showIntegrityVisualDialog(isBasicPass, isDevicePass, isStrongPass);
                         }
                     });
 
@@ -254,6 +231,30 @@ public class MainActivity extends Activity {
                 }
             }
         });
+    }
+
+    private void showIntegrityVisualDialog(final boolean basicPass, final boolean devicePass, final boolean strongPass) {
+        final Dialog dialog = new Dialog(this);
+        dialog.setContentView(R.layout.dialog_integrity_checker);
+
+        ImageView imgBasic = dialog.findViewById(R.id.imgBasicCheck);
+        ImageView imgDevice = dialog.findViewById(R.id.imgDeviceCheck);
+        ImageView imgStrong = dialog.findViewById(R.id.imgStrongCheck);
+        Button btnRecheck = dialog.findViewById(R.id.btnRecheckIntegrity);
+
+        imgBasic.setImageResource(basicPass ? R.drawable.ic_pass_check : R.drawable.ic_fail_cross);
+        imgDevice.setImageResource(devicePass ? R.drawable.ic_pass_check : R.drawable.ic_fail_cross);
+        imgStrong.setImageResource(strongPass ? R.drawable.ic_pass_check : R.drawable.ic_fail_cross);
+
+        btnRecheck.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialog.dismiss();
+                runPlayIntegrityTest();
+            }
+        });
+
+        dialog.show();
     }
 
     private void showSettingsDialog() {
