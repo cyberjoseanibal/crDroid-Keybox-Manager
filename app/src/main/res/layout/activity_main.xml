@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="20dp"
+    android:background="@color/bg_dark">
+
+    <!-- Header Section -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="crDroid Keybox Manager"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="@color/accent_sky" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Sincronizacion Automatica cada 3 Horas"
+            android:textSize="12sp"
+            android:textColor="@color/text_sub"
+            android:layout_marginTop="3dp" />
+    </LinearLayout>
+
+    <!-- Status & AutoSync Card -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:background="@drawable/card_shape"
+        android:layout_marginBottom="14dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Estado del Sistema"
+                android:textColor="@color/text_sub"
+                android:textSize="12.5sp" />
+
+            <TextView
+                android:id="@+id/tvStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Inicializando..."
+                android:textColor="@color/accent_green"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#1F2937"
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="10dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Auto-Sincronización (3 Horas)"
+                    android:textColor="@color/text_main"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Comprueba el repositorio cada 3 horas"
+                    android:textColor="@color/text_sub"
+                    android:textSize="10.5sp"
+                    android:layout_marginTop="2dp" />
+            </LinearLayout>
+
+            <Switch
+                android:id="@+id/switchAutoSync"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Action Buttons -->
+    <Button
+        android:id="@+id/btnUpdateKeybox"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="Sincronizar Keybox Manualmente"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="@color/accent_blue"
+        android:layout_marginBottom="8dp" />
+
+    <Button
+        android:id="@+id/btnUpdateTargets"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="Aplicar Configuracion Target Apps"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="@color/accent_purple"
+        android:layout_marginBottom="8dp" />
+
+    <Button
+        android:id="@+id/btnDeleteKeybox"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="Eliminar Keybox del Sistema"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#991B1B"
+        android:layout_marginBottom="14dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Registro de Eventos"
+        android:textColor="@color/text_sub"
+        android:textSize="12sp"
+        android:layout_marginBottom="6dp" />
+
+    <!-- Terminal Console -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#050811"
+        android:padding="12dp">
+
+        <TextView
+            android:id="@+id/tvLog"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="[INFO] crDroid Keybox Manager listo.\n[INFO] Auto-sincronizacion programada cada 3 horas."
+            android:textColor="#6EE7B7"
+            android:textSize="11.5sp"
+            android:fontFamily="monospace" />
+    </ScrollView>
+
+</LinearLayout>

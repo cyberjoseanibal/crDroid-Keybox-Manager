@@ -1,0 +1,428 @@
+package com.crdroid.keyboxupdater;
+
+import android.app.Activity;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.View;
+import android.widget.Button;
+import android.widget.CompoundButton;
+import android.widget.Switch;
+import android.widget.TextView;
+
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.security.MessageDigest;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+public class MainActivity extends Activity {
+
+    private TextView tvStatus;
+    private TextView tvLog;
+    private Button btnUpdateKeybox;
+    private Button btnUpdateTargets;
+    private Button btnDeleteKeybox;
+    private Switch switchAutoSync;
+
+    private Handler mainHandler;
+    private ScheduledExecutorService schedulerService;
+    private boolean isAutoSyncEnabled = true;
+    private String lastKnownHash = "";
+
+    private static final String GITHUB_URL = "https://raw.githubusercontent.com/Wuang26/Kaorios-Toolbox/main/Toolbox-data/Keybox.xml";
+    
+    private static final String DEFAULT_TARGET_APPS = 
+        "# always use leaf hack mode\n" +
+        "com.google.android.apps.walletnfcrel\n" +
+        "com.google.android.googlequicksearchbox\n" +
+        "com.google.ar.core\n" +
+        "com.android.vending\n" +
+        "com.google.android.gms\n";
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        tvStatus = findViewById(R.id.tvStatus);
+        tvLog = findViewById(R.id.tvLog);
+        btnUpdateKeybox = findViewById(R.id.btnUpdateKeybox);
+        btnUpdateTargets = findViewById(R.id.btnUpdateTargets);
+        btnDeleteKeybox = findViewById(R.id.btnDeleteKeybox);
+        switchAutoSync = findViewById(R.id.switchAutoSync);
+
+        mainHandler = new Handler(Looper.getMainLooper());
+        schedulerService = Executors.newScheduledThreadPool(2);
+
+        btnUpdateKeybox.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startKeyboxUpdate();
+            }
+        });
+
+        btnUpdateTargets.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startTargetAppsUpdate();
+            }
+        });
+
+        btnDeleteKeybox.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startKeyboxDeletion();
+            }
+        });
+
+        switchAutoSync.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                isAutoSyncEnabled = isChecked;
+                if (isChecked) {
+                    appendLog("[INFO] Auto-sincronizacion programada cada 3 horas activada.");
+                } else {
+                    appendLog("[INFO] Auto-sincronizacion desactivada.");
+                }
+            }
+        });
+
+        appendLog("[INFO] crDroid Keybox Manager cargado.");
+        requestRootAccessOnStart();
+        startAutoSyncDaemon();
+    }
+
+    private void requestRootAccessOnStart() {
+        appendLog("[INFO] Comprobando acceso Root...");
+        schedulerService.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Process process = Runtime.getRuntime().exec("su");
+                    DataOutputStream os = new DataOutputStream(process.getOutputStream());
+                    os.writeBytes("id\n");
+                    os.writeBytes("exit\n");
+                    os.flush();
+                    int code = process.waitFor();
+                    if (code == 0) {
+                        updateStatus("Root Activo (Cada 3h)", 0xFF10B981);
+                        appendLog("[INFO] Acceso Root verificado correctamente.");
+                    } else {
+                        updateStatus("Permiso Root Requerido", 0xFFEF4444);
+                        appendLog("[ALERTA] Permitir acceso Root en KernelSU.");
+                    }
+                } catch (Exception e) {
+                    updateStatus("Error Root", 0xFFEF4444);
+                    appendLog("[ERROR] Fallo acceso Root: " + e.getMessage());
+                }
+            }
+        });
+    }
+
+    private void startAutoSyncDaemon() {
+        // Ejecutar comprobación automática cada 3 horas (3 HORAS)
+        schedulerService.scheduleWithFixedDelay(new Runnable() {
+            @Override
+            public void run() {
+                if (isAutoSyncEnabled) {
+                    checkGitHubForRevocationOrUpdate();
+                }
+            }
+        }, 10, 3 * 3600, TimeUnit.SECONDS);
+    }
+
+    private void checkGitHubForRevocationOrUpdate() {
+        try {
+            URL url = new URL(GITHUB_URL);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setConnectTimeout(8000);
+            conn.setReadTimeout(8000);
+            conn.setRequestMethod("GET");
+
+            if (conn.getResponseCode() == HttpURLConnection.HTTP_OK) {
+                InputStream in = conn.getInputStream();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line).append("\n");
+                }
+                reader.close();
+
+                String remoteXml = sb.toString();
+                if (remoteXml.contains("Keybox")) {
+                    String currentHash = computeHash(remoteXml);
+                    if (!currentHash.equals(lastKnownHash)) {
+                        lastKnownHash = currentHash;
+                        appendLog("[AUTO-SYNC (3H)] Cambio detectado en GitHub. Actualizando Keybox...");
+                        
+                        File tempFile = new File(getExternalFilesDir(null), "keybox_temp.xml");
+                        FileOutputStream fos = new FileOutputStream(tempFile);
+                        fos.write(remoteXml.getBytes());
+                        fos.close();
+
+                        boolean ok = applyKeyboxRoot(tempFile.getAbsolutePath(), remoteXml);
+                        if (ok) {
+                            updateStatus("Keybox Actualizado (Auto)", 0xFF10B981);
+                            appendLog("[AUTO-SYNC] Keybox actualizado en sistema y crDroid Settings.");
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Silencioso en fondo
+        }
+    }
+
+    private String computeHash(String input) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] hash = md.digest(input.getBytes("UTF-8"));
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (Exception e) {
+            return input;
+        }
+    }
+
+    private void appendLog(final String text) {
+        mainHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                String time = new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date());
+                String current = tvLog.getText().toString();
+                tvLog.setText(current + "\n[" + time + "] " + text);
+            }
+        });
+    }
+
+    private void updateStatus(final String text, final int color) {
+        mainHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                tvStatus.setText(text);
+                tvStatus.setTextColor(color);
+            }
+        });
+    }
+
+    private void setButtonsEnabled(final boolean enabled) {
+        mainHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                btnUpdateKeybox.setEnabled(enabled);
+                btnUpdateTargets.setEnabled(enabled);
+                btnDeleteKeybox.setEnabled(enabled);
+            }
+        });
+    }
+
+    private void startKeyboxUpdate() {
+        setButtonsEnabled(false);
+        updateStatus("Sincronizando Keybox...", 0xFF38BDF8);
+        appendLog("[INFO] Descargando archivo Keybox desde GitHub...");
+
+        schedulerService.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    URL url = new URL(GITHUB_URL);
+                    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                    conn.setConnectTimeout(10000);
+                    conn.setReadTimeout(10000);
+                    conn.setRequestMethod("GET");
+
+                    int responseCode = conn.getResponseCode();
+                    if (responseCode == HttpURLConnection.HTTP_OK) {
+                        InputStream in = conn.getInputStream();
+                        BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+                        StringBuilder sb = new StringBuilder();
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            sb.append(line).append("\n");
+                        }
+                        reader.close();
+
+                        String xmlContent = sb.toString();
+                        if (xmlContent.contains("Keybox")) {
+                            lastKnownHash = computeHash(xmlContent);
+                            appendLog("[INFO] Keybox descargado correctamente (" + xmlContent.length() + " bytes).");
+                            
+                            File tempFile = new File(getExternalFilesDir(null), "keybox_temp.xml");
+                            FileOutputStream fos = new FileOutputStream(tempFile);
+                            fos.write(xmlContent.getBytes());
+                            fos.close();
+
+                            appendLog("[INFO] Escribiendo en directorios del sistema...");
+                            boolean rootOk = applyKeyboxRoot(tempFile.getAbsolutePath(), xmlContent);
+
+                            if (rootOk) {
+                                updateStatus("Keybox Instalado", 0xFF10B981);
+                                appendLog("[SUCCESS] Keybox instalado en sistema y crDroid Settings.");
+                            } else {
+                                updateStatus("Error de Escritura Root", 0xFFEF4444);
+                                appendLog("[ERROR] Fallo al escribir en directorios Root.");
+                            }
+
+                        } else {
+                            updateStatus("Error XML Invalido", 0xFFEF4444);
+                            appendLog("[ERROR] Respuesta de GitHub invalida.");
+                        }
+
+                    } else {
+                        updateStatus("Error HTTP " + responseCode, 0xFFEF4444);
+                        appendLog("[ERROR] Respuesta del servidor: " + responseCode);
+                    }
+
+                } catch (Exception e) {
+                    updateStatus("Error de Conexion", 0xFFEF4444);
+                    appendLog("[ERROR] Excepcion de red: " + e.getMessage());
+                } finally {
+                    setButtonsEnabled(true);
+                }
+            }
+        });
+    }
+
+    private void startTargetAppsUpdate() {
+        setButtonsEnabled(false);
+        updateStatus("Aplicando Target Apps...", 0xFF8B5CF6);
+        appendLog("[INFO] Configurando aplicaciones objetivo...");
+
+        schedulerService.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    File tempFile = new File(getExternalFilesDir(null), "target_temp.txt");
+                    FileOutputStream fos = new FileOutputStream(tempFile);
+                    fos.write(DEFAULT_TARGET_APPS.getBytes());
+                    fos.close();
+
+                    boolean rootOk = applyTargetAppsRoot(tempFile.getAbsolutePath(), DEFAULT_TARGET_APPS);
+
+                    if (rootOk) {
+                        updateStatus("Target Apps Aplicadas", 0xFF10B981);
+                        appendLog("[SUCCESS] Aplicaciones objetivo configuradas correctamente.");
+                    } else {
+                        updateStatus("Error Root Target Apps", 0xFFEF4444);
+                        appendLog("[ERROR] Fallo al configurar Target Apps.");
+                    }
+
+                } catch (Exception e) {
+                    updateStatus("Error Target Apps", 0xFFEF4444);
+                    appendLog("[ERROR] Excepcion Target Apps: " + e.getMessage());
+                } finally {
+                    setButtonsEnabled(true);
+                }
+            }
+        });
+    }
+
+    private void startKeyboxDeletion() {
+        setButtonsEnabled(false);
+        updateStatus("Eliminando Keybox...", 0xFFEF4444);
+        appendLog("[INFO] Eliminando Keybox del sistema y de los Ajustes de crDroid...");
+
+        schedulerService.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Process suProcess = Runtime.getRuntime().exec("su");
+                    DataOutputStream os = new DataOutputStream(suProcess.getOutputStream());
+
+                    os.writeBytes("rm -f /data/adb/trickystore/keybox.xml /data/system/trickystore/keybox.xml /sdcard/Kaorios/Keybox.xml /data/adb/kaorios/keybox.xml\n");
+                    os.writeBytes("settings delete secure spoof_trickystore_keybox\n");
+                    os.writeBytes("exit\n");
+                    os.flush();
+
+                    int code = suProcess.waitFor();
+                    if (code == 0) {
+                        lastKnownHash = "";
+                        updateStatus("Keybox Eliminado", 0xFF991B1B);
+                        appendLog("[SUCCESS] Archivo Keybox eliminado de todas las rutas y de Ajustes de crDroid.");
+                    } else {
+                        updateStatus("Error al Eliminar", 0xFFEF4444);
+                        appendLog("[ERROR] No se pudo borrar el archivo Keybox.");
+                    }
+                } catch (Exception e) {
+                    updateStatus("Error al Eliminar", 0xFFEF4444);
+                    appendLog("[ERROR] Excepcion al eliminar Keybox: " + e.getMessage());
+                } finally {
+                    setButtonsEnabled(true);
+                }
+            }
+        });
+    }
+
+    private boolean applyKeyboxRoot(String tempFilePath, String xmlContent) {
+        try {
+            Process suProcess = Runtime.getRuntime().exec("su");
+            DataOutputStream os = new DataOutputStream(suProcess.getOutputStream());
+
+            os.writeBytes("mkdir -p /data/adb/trickystore /data/system/trickystore /sdcard/Kaorios /data/adb/kaorios\n");
+            os.writeBytes("cp \"" + tempFilePath + "\" /data/adb/trickystore/keybox.xml\n");
+            os.writeBytes("cp \"" + tempFilePath + "\" /data/system/trickystore/keybox.xml\n");
+            os.writeBytes("cp \"" + tempFilePath + "\" /sdcard/Kaorios/Keybox.xml\n");
+            os.writeBytes("cp \"" + tempFilePath + "\" /data/adb/kaorios/keybox.xml\n");
+            os.writeBytes("chmod 0644 /data/adb/trickystore/keybox.xml /data/system/trickystore/keybox.xml /sdcard/Kaorios/Keybox.xml /data/adb/kaorios/keybox.xml\n");
+            
+            os.writeBytes("settings put secure spoof_trickystore_keybox \"" + xmlContent.replace("\"", "\\\"") + "\"\n");
+            
+            os.writeBytes("exit\n");
+            os.flush();
+
+            return suProcess.waitFor() == 0;
+        } catch (Exception e) {
+            appendLog("[ERROR] Excepcion Root Keybox: " + e.getMessage());
+            return false;
+        }
+    }
+
+    private boolean applyTargetAppsRoot(String tempFilePath, String targetContent) {
+        try {
+            Process suProcess = Runtime.getRuntime().exec("su");
+            DataOutputStream os = new DataOutputStream(suProcess.getOutputStream());
+
+            os.writeBytes("mkdir -p /data/adb/trickystore /data/system/trickystore /sdcard/Kaorios /data/adb/kaorios\n");
+            os.writeBytes("cp \"" + tempFilePath + "\" /data/adb/trickystore/target.txt\n");
+            os.writeBytes("cp \"" + tempFilePath + "\" /data/system/trickystore/target.txt\n");
+            os.writeBytes("cp \"" + tempFilePath + "\" /sdcard/Kaorios/target.txt\n");
+            os.writeBytes("cp \"" + tempFilePath + "\" /data/adb/kaorios/target.txt\n");
+            os.writeBytes("chmod 0644 /data/adb/trickystore/target.txt /data/system/trickystore/target.txt /sdcard/Kaorios/target.txt /data/adb/kaorios/target.txt\n");
+            
+            os.writeBytes("settings put secure spoof_trickystore_target \"" + targetContent.replace("\"", "\\\"") + "\"\n");
+            
+            os.writeBytes("exit\n");
+            os.flush();
+
+            return suProcess.waitFor() == 0;
+        } catch (Exception e) {
+            appendLog("[ERROR] Excepcion Root Target: " + e.getMessage());
+            return false;
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (schedulerService != null) {
+            schedulerService.shutdownNow();
+        }
+    }
+}
