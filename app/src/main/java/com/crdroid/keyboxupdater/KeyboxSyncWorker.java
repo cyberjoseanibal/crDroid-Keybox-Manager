@@ -1,9 +1,13 @@
 package com.crdroid.keyboxupdater;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.os.Build;
 
 import androidx.annotation.NonNull;
+import androidx.core.app.NotificationCompat;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
@@ -65,7 +69,7 @@ public class KeyboxSyncWorker extends Worker {
                         return Result.success();
                     }
 
-                    // Intentar escribir vÃ­a Root
+                    // Intentar escribir via Root
                     File tempFile = new File(context.getExternalFilesDir(null), "keybox_temp.xml");
                     FileOutputStream fos = new FileOutputStream(tempFile);
                     fos.write(remoteXml.getBytes());
@@ -74,6 +78,7 @@ public class KeyboxSyncWorker extends Worker {
                     boolean success = applyKeyboxRoot(tempFile.getAbsolutePath(), remoteXml);
                     if (success) {
                         prefs.edit().putString("lastKnownHash", remoteHash).apply();
+                        sendUpdateNotification();
                         return Result.success();
                     } else {
                         return Result.retry();
@@ -84,6 +89,37 @@ public class KeyboxSyncWorker extends Worker {
         } catch (Exception e) {
             return Result.retry();
         }
+    }
+
+    private void sendUpdateNotification() {
+        try {
+            NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            String channelId = "keybox_updates_channel";
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                NotificationChannel channel = new NotificationChannel(
+                    channelId,
+                    "Notificaciones de Keybox",
+                    NotificationManager.IMPORTANCE_DEFAULT
+                );
+                channel.setDescription("Notifica cuando Keybox.xml ha sido actualizado exitosamente desde GitHub");
+                if (notificationManager != null) {
+                    notificationManager.createNotificationChannel(channel);
+                }
+            }
+
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(context, channelId)
+                .setSmallIcon(R.drawable.ic_pass_check)
+                .setContentTitle("🔔 Keybox Actualizado")
+                .setContentText("Keybox.xml actualizado desde GitHub")
+                .setStyle(new NotificationCompat.BigTextStyle().bigText("Keybox.xml ha sido actualizado e instalado exitosamente desde GitHub. Tu dispositivo esta protegido."))
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setAutoCancel(true);
+
+            if (notificationManager != null) {
+                notificationManager.notify(777, builder.build());
+            }
+        } catch (Exception ignored) {}
     }
 
     private boolean applyKeyboxRoot(String tempFilePath, String xmlContent) {
