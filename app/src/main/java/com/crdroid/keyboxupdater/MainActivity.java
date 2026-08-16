@@ -17,6 +17,12 @@ import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TextView;
 
+import androidx.work.Constraints;
+import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.NetworkType;
+import androidx.work.PeriodicWorkRequest;
+import androidx.work.WorkManager;
+
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -29,9 +35,8 @@ import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends Activity {
@@ -48,8 +53,7 @@ public class MainActivity extends Activity {
     private Switch switchAutoSync;
 
     private Handler mainHandler;
-    private ScheduledExecutorService schedulerService;
-    private ScheduledFuture<?> autoSyncTask;
+    private ExecutorService executorService;
     private SharedPreferences prefs;
 
     private boolean isRootGranted = false;
@@ -83,7 +87,7 @@ public class MainActivity extends Activity {
         switchAutoSync = findViewById(R.id.switchAutoSync);
 
         mainHandler = new Handler(Looper.getMainLooper());
-        schedulerService = Executors.newScheduledThreadPool(2);
+        executorService = Executors.newSingleThreadExecutor();
         prefs = getSharedPreferences("crDroidKeyboxPrefs", MODE_PRIVATE);
 
         loadPreferences();
@@ -143,15 +147,16 @@ public class MainActivity extends Activity {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 isAutoSyncEnabled = isChecked;
                 prefs.edit().putBoolean("autoSyncEnabled", isChecked).apply();
+                scheduleAutoSync();
                 if (isChecked) {
-                    appendLog("[INFO] Auto-sincronizacion activada (Cada " + syncIntervalHours + " Horas).");
+                    appendLog("[INFO] Auto-sincronizacion activada con WorkManager (Cada " + syncIntervalHours + " Horas).");
                 } else {
                     appendLog("[INFO] Auto-sincronizacion desactivada.");
                 }
             }
         });
 
-        appendLog("[INFO] crDroid Keybox Manager v2.4.0 listo.");
+        appendLog("[INFO] crDroid Keybox Manager listo.");
         requestRootAccessOnStart();
         scheduleAutoSync();
     }
@@ -159,6 +164,7 @@ public class MainActivity extends Activity {
     private void loadPreferences() {
         syncIntervalHours = prefs.getInt("intervalHours", 3);
         isAutoSyncEnabled = prefs.getBoolean("autoSyncEnabled", true);
+        lastKnownHash = prefs.getString("lastKnownHash", "");
         switchAutoSync.setChecked(isAutoSyncEnabled);
         tvSubHeader.setText("Sincronizacion Automatica cada " + syncIntervalHours + " Horas");
     }
@@ -177,7 +183,7 @@ public class MainActivity extends Activity {
             public void run() {
                 new AlertDialog.Builder(MainActivity.this)
                     .setTitle("Acceso Root Requerido")
-                    .setMessage("No se han detectado permisos de Superusuario (Root) en KernelSU / APatch / Magisk.\n\nEsta aplicacion requiere acceso Root para sincronizar el Keybox y modificar los Ajustes de crDroid.\n\nPor favor otorga acceso Root en tu gestor o verifica el estado de tu dispositivo.")
+                    .setMessage("No se han detectado permisos de Superusuario (Root) en KernelSU / APatch / Magisk.\n\nEsta aplicacion requiere acceso Root para sincronizar el Keybox y modificar los Ajustes de crDroid.")
                     .setPositiveButton("Reintentar Root", new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
@@ -193,9 +199,9 @@ public class MainActivity extends Activity {
     private void runPlayIntegrityTest() {
         setButtonsEnabled(false);
         updateStatus("Probando Play Integrity...", 0xFF0D9488);
-        appendLog("[TEST] Ejecutando comprobacion visual avanzada...");
+        appendLog("[TEST] Comprobando atestacion del sistema...");
 
-        schedulerService.execute(new Runnable() {
+        executorService.execute(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -328,8 +334,8 @@ public class MainActivity extends Activity {
     }
 
     private void requestRootAccessOnStart() {
-        appendLog("[INFO] Solicitando permisos Superusuario en KernelSU...");
-        schedulerService.execute(new Runnable() {
+        appendLog("[INFO] Verificando permisos Superusuario...");
+        executorService.execute(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -341,11 +347,11 @@ public class MainActivity extends Activity {
                     int code = process.waitFor();
                     if (code == 0) {
                         isRootGranted = true;
-                        updateStatus("Root Activo (Cada " + syncIntervalHours + "h)", 0xFF10B981);
+                        updateStatus("Root Activo", 0xFF10B981);
                         appendLog("[INFO] Permisos Root concedidos exitosamente.");
                     } else {
                         isRootGranted = false;
-                        updateStatus("Root Requerido / Sin Permiso", 0xFFEF4444);
+                        updateStatus("Root Requerido", 0xFFEF4444);
                         appendLog("[ALERTA] No se concedio acceso Root en KernelSU.");
                         showNoRootAlertDialog();
                     }
@@ -360,59 +366,23 @@ public class MainActivity extends Activity {
     }
 
     private synchronized void scheduleAutoSync() {
-        if (autoSyncTask != null && !autoSyncTask.isCancelled()) {
-            autoSyncTask.cancel(true);
-        }
-        autoSyncTask = schedulerService.scheduleWithFixedDelay(new Runnable() {
-            @Override
-            public void run() {
-                if (isAutoSyncEnabled && isRootGranted) {
-                    checkGitHubForRevocationOrUpdate();
-                }
-            }
-        }, 10, syncIntervalHours * 3600, TimeUnit.SECONDS);
-    }
+        if (isAutoSyncEnabled) {
+            Constraints constraints = new Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .build();
 
-    private void checkGitHubForRevocationOrUpdate() {
-        try {
-            URL url = new URL(GITHUB_URL);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setConnectTimeout(8000);
-            conn.setReadTimeout(8000);
-            conn.setRequestMethod("GET");
+            PeriodicWorkRequest syncWorkRequest =
+                new PeriodicWorkRequest.Builder(KeyboxSyncWorker.class, syncIntervalHours, TimeUnit.HOURS)
+                    .setConstraints(constraints)
+                    .build();
 
-            if (conn.getResponseCode() == HttpURLConnection.HTTP_OK) {
-                InputStream in = conn.getInputStream();
-                BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-                StringBuilder sb = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    sb.append(line).append("\n");
-                }
-                reader.close();
-
-                String remoteXml = sb.toString();
-                if (remoteXml.contains("Keybox")) {
-                    String currentHash = computeHash(remoteXml);
-                    if (!currentHash.equals(lastKnownHash)) {
-                        lastKnownHash = currentHash;
-                        appendLog("[AUTO-SYNC] Cambio detectado en GitHub. Actualizando Keybox...");
-                        
-                        File tempFile = new File(getExternalFilesDir(null), "keybox_temp.xml");
-                        FileOutputStream fos = new FileOutputStream(tempFile);
-                        fos.write(remoteXml.getBytes());
-                        fos.close();
-
-                        boolean ok = applyKeyboxRoot(tempFile.getAbsolutePath(), remoteXml);
-                        if (ok) {
-                            updateStatus("Keybox Actualizado (Auto)", 0xFF10B981);
-                            appendLog("[AUTO-SYNC] Keybox actualizado en sistema y crDroid Settings.");
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {
-            // Silencioso en fondo
+            WorkManager.getInstance(getApplicationContext()).enqueueUniquePeriodicWork(
+                "KeyboxSyncWork",
+                ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE,
+                syncWorkRequest
+            );
+        } else {
+            WorkManager.getInstance(getApplicationContext()).cancelUniqueWork("KeyboxSyncWork");
         }
     }
 
@@ -470,7 +440,7 @@ public class MainActivity extends Activity {
         updateStatus("Sincronizando Keybox...", 0xFF38BDF8);
         appendLog("[INFO] Descargando archivo Keybox desde GitHub...");
 
-        schedulerService.execute(new Runnable() {
+        executorService.execute(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -493,25 +463,32 @@ public class MainActivity extends Activity {
 
                         String xmlContent = sb.toString();
                         if (xmlContent.contains("Keybox")) {
-                            lastKnownHash = computeHash(xmlContent);
-                            appendLog("[INFO] Keybox descargado correctamente (" + xmlContent.length() + " bytes).");
-                            
-                            File tempFile = new File(getExternalFilesDir(null), "keybox_temp.xml");
-                            FileOutputStream fos = new FileOutputStream(tempFile);
-                            fos.write(xmlContent.getBytes());
-                            fos.close();
+                            String remoteHash = computeHash(xmlContent);
 
-                            appendLog("[INFO] Escribiendo en directorios del sistema...");
-                            boolean rootOk = applyKeyboxRoot(tempFile.getAbsolutePath(), xmlContent);
-
-                            if (rootOk) {
-                                updateStatus("Keybox Instalado", 0xFF10B981);
-                                appendLog("[SUCCESS] Keybox instalado en sistema y crDroid Settings.");
+                            if (remoteHash.equalsIgnoreCase(lastKnownHash)) {
+                                updateStatus("Keybox ya actualizado", 0xFF10B981);
+                                appendLog("[INFO] El Keybox remoto es identico al instalado. Sin cambios.");
                             } else {
-                                updateStatus("Error de Escritura Root", 0xFFEF4444);
-                                appendLog("[ERROR] Fallo al escribir en directorios Root.");
-                            }
+                                appendLog("[INFO] Keybox descargado (" + xmlContent.length() + " bytes).");
+                                
+                                File tempFile = new File(getExternalFilesDir(null), "keybox_temp.xml");
+                                FileOutputStream fos = new FileOutputStream(tempFile);
+                                fos.write(xmlContent.getBytes());
+                                fos.close();
 
+                                appendLog("[INFO] Escribiendo en directorios del sistema...");
+                                boolean rootOk = applyKeyboxRoot(tempFile.getAbsolutePath(), xmlContent);
+
+                                if (rootOk) {
+                                    lastKnownHash = remoteHash;
+                                    prefs.edit().putString("lastKnownHash", remoteHash).apply();
+                                    updateStatus("Keybox Instalado", 0xFF10B981);
+                                    appendLog("[SUCCESS] Keybox instalado en sistema y crDroid Settings.");
+                                } else {
+                                    updateStatus("Error de Escritura Root", 0xFFEF4444);
+                                    appendLog("[ERROR] Fallo al escribir en directorios Root.");
+                                }
+                            }
                         } else {
                             updateStatus("Error XML Invalido", 0xFFEF4444);
                             appendLog("[ERROR] Respuesta de GitHub invalida.");
@@ -537,7 +514,7 @@ public class MainActivity extends Activity {
         updateStatus("Aplicando Target Apps...", 0xFF8B5CF6);
         appendLog("[INFO] Configurando aplicaciones objetivo por defecto...");
 
-        schedulerService.execute(new Runnable() {
+        executorService.execute(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -569,9 +546,9 @@ public class MainActivity extends Activity {
     private void startKeyboxDeletion() {
         setButtonsEnabled(false);
         updateStatus("Eliminando Keybox...", 0xFFEF4444);
-        appendLog("[INFO] Eliminando Keybox del sistema y de los Ajustes de crDroid...");
+        appendLog("[INFO] Eliminando Keybox del sistema...");
 
-        schedulerService.execute(new Runnable() {
+        executorService.execute(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -586,6 +563,7 @@ public class MainActivity extends Activity {
                     int code = suProcess.waitFor();
                     if (code == 0) {
                         lastKnownHash = "";
+                        prefs.edit().remove("lastKnownHash").apply();
                         updateStatus("Keybox Eliminado", 0xFF991B1B);
                         appendLog("[SUCCESS] Archivo Keybox eliminado de todas las rutas y de Ajustes de crDroid.");
                     } else {
@@ -653,8 +631,8 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (schedulerService != null) {
-            schedulerService.shutdownNow();
+        if (executorService != null) {
+            executorService.shutdown();
         }
     }
 }
